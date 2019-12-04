@@ -11,6 +11,8 @@ print(input)
 crosses = []
 occupied = {}
 distances = {}
+
+
 def walk(path, wire):
     steps = path.split(',')
     pos = (0, 0)
@@ -43,10 +45,10 @@ def dist(b):
     return abs(b[0]) + abs(b[1])
 
 
-# submit(min([dist(i) for i in crosses]), day=3, part='a')
-
 print(crosses)
 print(min(distances))
+# submit(min([dist(i) for i in crosses]), day=3, part='a')
+
 
 cross_dist = []
 for cross in crosses:
@@ -55,5 +57,4 @@ for cross in crosses:
     cross_dist.append(dist_a + dist_b)
 
 print(min(cross_dist))
-
 # submit(min(cross_dist), day=3, part='b')

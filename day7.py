@@ -1,9 +1,11 @@
 from aocd import get_data
+import itertools
 from aocd import submit
 
 day = 7
 _input = get_data(day=day)
 program = [int(i) for i in _input.split(',')]
+
 
 
 def _read_value(input, pos, mode):
@@ -81,51 +83,44 @@ def run_intcode(code: list):
 def solve(code, phase_from, phase_to):
     max = 0
     max_inputs = None
-    for a in range(phase_from, phase_to + 1):
-        for b in range(phase_from, phase_to + 1):
-            for c in range(phase_from, phase_to + 1):
-                for d in range(phase_from, phase_to + 1):
-                    for e in range(phase_from, phase_to + 1):
-                        if len({a, b, c, d, e}) != 5:
-                            continue
+    for a, b, c, d, e in itertools.permutations(range(phase_from, phase_to + 1), 5):
+        ga = run_intcode(code.copy())
+        gb = run_intcode(code.copy())
+        gc = run_intcode(code.copy())
+        gd = run_intcode(code.copy())
+        ge = run_intcode(code.copy())
 
-                        ga = run_intcode(code.copy())
-                        gb = run_intcode(code.copy())
-                        gc = run_intcode(code.copy())
-                        gd = run_intcode(code.copy())
-                        ge = run_intcode(code.copy())
+        init_value = 0
+        thurst_value = 0
 
-                        init_value = 0
-                        thurst_value = 0
+        next(ga)
+        next(gb)
+        next(gc)
+        next(gd)
+        next(ge)
+        while True:
+            try:
+                ga.send(a)
+                val_a = ga.send(init_value)
 
-                        next(ga)
-                        next(gb)
-                        next(gc)
-                        next(gd)
-                        next(ge)
-                        while True:
-                            try:
-                                ga.send(a)
-                                val_a = ga.send(init_value)
+                gb.send(b)
+                val_b = gb.send(val_a)
 
-                                gb.send(b)
-                                val_b = gb.send(val_a)
+                gc.send(c)
+                val_c = gc.send(val_b)
 
-                                gc.send(c)
-                                val_c = gc.send(val_b)
+                gd.send(d)
+                val_d = gd.send(val_c)
 
-                                gd.send(d)
-                                val_d = gd.send(val_c)
+                ge.send(e)
 
-                                ge.send(e)
+                thurst_value = init_value = ge.send(val_d)
+            except StopIteration:
+                break
 
-                                thurst_value = init_value = ge.send(val_d)
-                            except StopIteration:
-                                break
-
-                        if thurst_value > max:
-                            max = thurst_value
-                            max_inputs = (a,b,c,d,e)
+        if thurst_value > max:
+            max = thurst_value
+            max_inputs = (a,b,c,d,e)
 
     print(max, max_inputs)
     return max

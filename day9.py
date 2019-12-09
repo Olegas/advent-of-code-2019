@@ -44,6 +44,25 @@ tests = [
 ]
 
 
+class Memory(dict):
+
+    def __init__(self, program):
+        super().__init__()
+        self.update(zip(range(len(program)), program))
+
+    def __missing__(self, key):
+        return 0
+
+    def __getitem__(self, item):
+        if type(item) == int:
+            if item < 0:
+                raise Exception('Accessing incorrect memory location: {}'.format(item))
+            else:
+                return super().__getitem__(item)
+        else:
+            raise TypeError('Incorrect memory address type: {}'.format(type(item)))
+
+
 def run_intcode(code: dict):
 
     pos = 0
@@ -134,15 +153,13 @@ def run_intcode(code: dict):
         elif opcode == 99:
             break
         else:
-            raise 'Incorrect opcode'
+            raise Exception('Incorrect opcode {} at instruction {}'.format(opcode, opcode_block))
 
         pos += cmd_size
 
 
 def solve(program, i, stdout):
-    memory = collections.defaultdict(int)
-    memory.update(zip(range(len(program)), program))
-    g = run_intcode(memory)
+    g = run_intcode(Memory(program))
     last_value = None
     try:
         while True:
@@ -157,6 +174,7 @@ def solve(program, i, stdout):
     return last_value
 
 
+ok = True
 for idx, test in enumerate(tests):
     try:
         output = []
@@ -165,16 +183,19 @@ for idx, test in enumerate(tests):
             if 3 in test:
                 if test[3] == output:
                     print('Test {}: OK'.format(idx))
+                    continue
                 else:
                     print('Test {}: FAILED. Output mismatch\nExpected: {}\nActual: {}'.format(idx, test[3], output))
             else:
                 print('Test {}: OK'.format(idx))
+                continue
         else:
             print('Test {}: FAILED {} != {}'.format(idx, result, test[2]))
+        ok &= False
     except Exception as e:
         print('Text {}: EXCEPTION {}'.format(idx, e))
 
-print('\nTests completed\n')
+print('Tests passed' if ok else 'Tests failed')
 
 # submit(part_a, day=day, part='a')
 # submit(part_b, day=day, part='b')

@@ -126,4 +126,8 @@ def solve_b():
             else:
                 max_f = f
 
+
+print(solve(data, 1))
+print(solve_b())
+
 # submit(solve_b(), day=day, part='b')

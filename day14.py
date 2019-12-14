@@ -6,7 +6,6 @@ import collections
 import networkx as nx
 
 day = 14
-xxx = get_data(day=day).splitlines()
 tests = [
     ("""10 ORE => 10 A
 1 ORE => 1 B
@@ -62,7 +61,7 @@ tests = [
 ]
 
 
-def solve(puzzle_input):
+def solve(puzzle_input, required_fuel):
     process_outputs = collections.defaultdict(int)
     process_outputs['ORE'] = 1
     g = nx.DiGraph()
@@ -79,38 +78,52 @@ def solve(puzzle_input):
         for source in sources:
             g.add_edge(source[1], target[1], weight=frac(source[0], target[0]))
 
-    order = []
-    print(list(reversed(list(nx.topological_sort(nx.line_graph(g))))))
-    for item in reversed(list(nx.topological_sort(g))):
-        for adj in g.predecessors(item):
-            order.append((adj, item))
-
-    print(order)
+    order = list(reversed(list(nx.topological_sort(nx.line_graph(g)))))
     requirements = collections.defaultdict(list)
-    requirements['FUEL'] = [1]
+    requirements['FUEL'] = [required_fuel]
     current_process = 'FUEL'
-    production_finished = []
+    leftovers = collections.defaultdict(int)
 
     for item in order:
         if item[0] != current_process:
-            required = sum(requirements[current_process])
+            leftover = leftovers[current_process]
+            required = sum(requirements[current_process]) - leftover
             min_output_per_process = process_outputs[current_process]
-            full, leftover = divmod(required, min_output_per_process)
-            requirements[current_process] = [(full + (1 if leftover > 0 else 0)) * min_output_per_process]
-            production_finished.append(current_process)
+            full, part = divmod(required, min_output_per_process)
+            will_produce = (full + (1 if part > 0 else 0)) * min_output_per_process
+            requirements[current_process] = [will_produce]
+            leftovers[current_process] += -leftover + will_produce - required
             current_process = item[0]
         requirements[item[0]].append(requirements[item[1]][0] * g[item[0]][item[1]]['weight'])
 
-    print(order)
-    print(len(production_finished) == len(set(production_finished)), production_finished)
     return sum(requirements['ORE'])
 
 
 for idx, test in enumerate(tests):
-    print()
-    res = solve(test[0])
+    res = solve(test[0], 1)
     if res == test[1]:
         print('Test {}: OK'.format(idx))
     else:
         print('Test {}: Failed. {} != {}'.format(idx, res, test[1]))
 
+data = get_data(day=day)
+# submit(solve(data, 1), day=day, part='a')
+
+
+def solve_b():
+    max_ore = 1000000000000
+    min_f = 0
+    max_f = 1000000000000
+    while True:
+        step = (max_f - min_f) // 2
+        f = min_f + step
+        ore = solve(data, f)
+        if ore == max_ore or step == 0:
+            return f
+        else:
+            if ore < max_ore:
+                min_f = f
+            else:
+                max_f = f
+
+# submit(solve_b(), day=day, part='b')

@@ -2,7 +2,7 @@ from aocd import get_data
 import collections
 import networkx as nx
 import time
-import curses
+import math
 from aocd import submit
 
 day = 15
@@ -164,23 +164,25 @@ def get_boundaries(field: dict) -> tuple:
     return min_x, max_x, min_y, max_y
 
 
-def draw_field(field: dict, pos: tuple, window):
+def draw_field(field: dict, pos: tuple = None):
     vis_map = {
         -1: '░',
         0: '#',
-        1: '.',
+        1: ' ',
         2: 'o',
         3: 'D',
-        4: 'O'
+        4: 'O',
+        5: '.'
     }
     min_x, max_x, min_y, max_y = get_boundaries(field)
+    lines = []
     for idx, y in enumerate(range(min_y, max_y + 1)):
-        window.addstr(idx, 0, ''.join([vis_map.get(field[y][x]) if (x, y) != pos else 'D' for x in range(min_x, max_x + 1)]))
-    window.refresh()
-    time.sleep(0.02)
+        lines.append(''.join([vis_map.get(field[y][x]) if (x, y) != pos else 'D' for x in range(min_x, max_x + 1)]))
+    print(chr(27) + "[2J" + '\n'.join(lines))
+    time.sleep(0.002)
 
 
-def explore(program: list, field: dict, window):
+def explore(program: list, field: dict):
     atlas = nx.Graph()
     plan = plan_moves(1)
     seen = set()
@@ -210,7 +212,7 @@ def explore(program: list, field: dict, window):
                     break
                 pos = new_pos
             field[new_pos[1]][new_pos[0]] = val
-            draw_field(field, pos, window)
+            draw_field(field, pos)
             val = next(g)
         else:
             raise Exception('Incorrect result')
@@ -218,7 +220,30 @@ def explore(program: list, field: dict, window):
     return oxygen, atlas
 
 
-def oxygenify(atlas: nx.Graph, field: dict, oxygen: tuple, window):
+def short_way(field: dict, oxygen: tuple):
+    distances = dict()
+    sources = [(0, 0, 0)]
+    while True:
+        next_sources = []
+        if len(sources) == 0:
+            break
+        for source in sources:
+            neighbors = [get_position(source, d) for d in range(1, 5)]
+            for item in neighbors:
+                what = field[item[1]][item[0]]
+                distance = distances.get((item[0], item[1]), math.inf)
+                dist_next = source[2] + 1
+                if distance > dist_next and what in (1, 2):
+                    distances[(item[0], item[1])] = dist_next
+                    next_sources.append((*item, dist_next))
+                    field[item[1]][item[0]] = 5
+        sources = next_sources
+        draw_field(field)
+
+    return distances[oxygen]
+
+
+def oxygenify(atlas: nx.Graph, field: dict, oxygen: tuple):
     steps = -1
     sources = [oxygen]
     while True:
@@ -229,22 +254,25 @@ def oxygenify(atlas: nx.Graph, field: dict, oxygen: tuple, window):
             around = atlas.neighbors(source)
             for pos in around:
                 what = field[pos[1]][pos[0]]
-                if what in (1, 2):
+                if what in (1, 2, 5):
                     next_sources.append(pos)
                     field[pos[1]][pos[0]] = 4
         sources = next_sources
-        draw_field(field, None, window)
+        draw_field(field)
         steps += 1
 
     return steps
 
 
-def solve(window):
+def solve():
     space = collections.defaultdict(lambda: collections.defaultdict(lambda: -1))
-    oxygen, atlas = explore(puzzle_input, space, window)
+    oxygen, atlas = explore(puzzle_input, space)
+    # solve part A with networkx
     print(len(nx.shortest_path(atlas, (0, 0), oxygen)) - 1)
+    # solve part A with wave
+    print(short_way(space, oxygen))
+    # solve part B with wave
+    print(oxygenify(atlas, space, oxygen))
 
-    print(oxygenify(atlas, space, oxygen, window))
 
-
-curses.wrapper(solve)
+solve()
